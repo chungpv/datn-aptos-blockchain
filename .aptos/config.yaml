@@ -1,0 +1,31 @@
+profiles:
+  admin-account:
+    private_key: "0x162643835f9ecf64b1112ac7a34867e79e541f46384a7e4df7ef332bd8a99cde"
+    public_key: "0xc02269a4208f6c6d53659d7b3050a9035e347d062bf1e613366f2b67918a8089"
+    account: 0265086d89f4f1c410417f6b430bc0341854825379e057ee334de346ebf74233
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
+  buyer:
+    private_key: "0xf685aec9725f5dfa873c0ef50494ccb35b9d15257c0e4ac8d1c05479931bea82"
+    public_key: "0xfb894502607c792a63f02a5ec82f002da892891ef33bfb2f8c68b50f67f6a2f9"
+    account: 6b1d772be2e2ae8a4c83f57af451561d547ea4d98cd291938382907d42602e9e
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
+  default:
+    private_key: "0xc9268794ea6cc30ad507e9865fa4f64d79a2dd54f1e42ca969faaab44d68cbdc"
+    public_key: "0x55e8cb9436e3897785859038440dedf519f88a89d4f33c0873aaac4e2c9a48db"
+    account: 21ad5694455f616df8780df215cc881a2e479d159b5387cc95500f4aaa73f672
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
+  payee:
+    private_key: "0xdb635a7f2ed64ad1e8f190e8bc5c0b3d0fa333a117b0249a814069562ea6e411"
+    public_key: "0xa51d5844cfc58705d43f16f665f244bab41fcec463f1d2f2d44dab2de40f146e"
+    account: 0b1b5aa90212dd587e53aa91243d74c89da195f44f397067b95363d0274a99f8
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
+  seller:
+    private_key: "0x4fd5dcd800459068db9b10a9bd6f70c4aed94a24dc8707e2c196f40ee6855181"
+    public_key: "0x4c8b2ad111b498adde3cbfb291a0c295f91b3ca0e23869a52ef2e4a1645687d7"
+    account: 165bc4a869039919f464ac9275ea0c376fae6ac9636f20171bc7ed12f23c366b
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
+  verifier:
+    private_key: "0x5fe89f937f4630fd003ba842bbfabf445ea90afddc0d51cc8eba274bf8375522"
+    public_key: "0x857bc16eea6bb21a444d9db9f97272e7cd59af8cb6e66c44d264c014dc3d66f6"
+    account: 65502d4ccf6e2d3d2cc4bf24b6bf96d7ad18f59aeaf9da0e0f9da8de6f37063f
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
