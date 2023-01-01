@@ -4,7 +4,7 @@
   "description": "This is my big project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "yarn run ts-mocha -p ./tsconfig.json -t 1000000 test/**/*.ts"
   },
   "repository": {
     "type": "git",

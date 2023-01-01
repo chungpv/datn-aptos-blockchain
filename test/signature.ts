@@ -1,88 +1,92 @@
-import { AptosAccount, AptosClient, BCS, HexString } from "aptos"
-import { readFileSync } from "fs"
-import { load } from "js-yaml"
+import { AptosAccount, BCS, HexString, TxnBuilderTypes } from "aptos"
 
-export const NODE_URL = "https://fullnode.testnet.aptoslabs.com"
+class Proof {
+    moduleAddress: string
+    moduleName: string
+    structName: string
 
-export const APTOS_COIN_TYPE = "0x1::aptos_coin::AptosCoin"
+    constructor(moduleAddress: string, moduleName: string, structName: string) {
+        this.moduleAddress = moduleAddress
+        this.moduleName = moduleName
+        this.structName = structName
+    }
 
-type ConfigYaml = {
-    profiles: {
-        default: {
-            private_key: string
-        }
-        seller: {
-            private_key: string
-        }
-        buyer: {
-            private_key: string
-        }
-        payee: {
-            private_key: string
-        }
-        verifier: {
-            private_key: string
-        }
+    generateSignature(signer_private_key: string) {
+        const message = BCS.bcsToBytes(this)
+        const signer = new AptosAccount(HexString.ensure(signer_private_key).toUint8Array())
+        const signature = signer.signBuffer(message)
+        return signature.noPrefix()
+    }
+
+    serialize(serializer: BCS.Serializer) {}
+}
+
+export class ListingProductProof extends Proof {
+    creator: string
+    name: string
+    description: string
+    uri: string
+    quantity: number | bigint
+    price: number | bigint
+
+    constructor(
+        moduleAddress: string,
+        creator: string,
+        name: string,
+        description: string,
+        uri: string,
+        quantity: number | bigint,
+        price: number | bigint,
+    ) {
+        super(moduleAddress, "proofs", "ListingProductProof")
+        this.creator = creator
+        this.name = name
+        this.description = description
+        this.uri = uri
+        this.quantity = quantity
+        this.price = price
+    }
+
+    serialize(serializer: BCS.Serializer): void {
+        TxnBuilderTypes.AccountAddress.fromHex(this.moduleAddress).serialize(serializer)
+        serializer.serializeStr(this.moduleName)
+        serializer.serializeStr(this.structName)
+        TxnBuilderTypes.AccountAddress.fromHex(this.creator).serialize(serializer)
+        serializer.serializeStr(this.name)
+        serializer.serializeStr(this.description)
+        serializer.serializeStr(this.uri)
+        serializer.serializeU64(this.quantity)
+        serializer.serializeU64(this.price)
     }
 }
 
-export const sleep = (second: number) => {
-    return new Promise((resolve) => setTimeout(resolve, second * 1000))
-}
+export class OrderProductProof extends Proof {
+    buyer: string
+    orderId: string
+    productTittle: string
+    quantity: number | bigint
 
-export class CommonClient extends AptosClient {
-    constructor() {
-        super(NODE_URL)
+    constructor(
+        moduleAddress: string,
+        buyer: string,
+        orderId: string,
+        productTittle: string,
+        quantity: number | bigint,
+    ) {
+        super(moduleAddress, "proofs", "OrderProductProof")
+        this.buyer = buyer
+        this.orderId = orderId
+        this.productTittle = productTittle
+        this.quantity = quantity
     }
 
-    async registerCoin(account: AptosAccount, coinType: string = APTOS_COIN_TYPE): Promise<void> {
-        const rawTxn = await this.generateTransaction(account.address(), {
-            function: "0x1::managed_coin::register",
-            type_arguments: [coinType],
-            arguments: [],
-        })
-        const bcsTxn = await this.signTransaction(account, rawTxn)
-        const pendingTxn = await this.submitTransaction(bcsTxn)
-        await this.waitForTransaction(pendingTxn.hash, { checkSuccess: true })
-    }
-
-    async optInDirectTransfer(account: AptosAccount, optIn: boolean): Promise<void> {
-        const rawTxn = await this.generateTransaction(account.address(), {
-            function: "0x3::token::opt_in_direct_transfer",
-            type_arguments: [],
-            arguments: [optIn],
-        })
-        const bcsTxn = await this.signTransaction(account, rawTxn)
-        const pendingTxn = await this.submitTransaction(bcsTxn)
-        await this.waitForTransaction(pendingTxn.hash, { checkSuccess: true })
-    }
-
-    async getBalance(accountAddress: HexString, coinType: string = APTOS_COIN_TYPE): Promise<string | number> {
-        try {
-            const resource = await this.getAccountResource(accountAddress, `0x1::coin::CoinStore<${coinType}>`)
-
-            return parseInt((resource.data as any)["coin"]["value"])
-        } catch (_) {
-            return 0
-        }
-    }
-}
-
-export class Sandbox {
-    admin: AptosAccount
-    seller: AptosAccount
-    buyer: AptosAccount
-    payee: string
-    verifier: AptosAccount
-
-    constructor(aptosConfigPath: string = "/Users/chung/datn-aptos-blockchain/.aptos/config.yaml") {
-        const phrases = load(readFileSync(aptosConfigPath, "utf-8")) as ConfigYaml
-        this.admin = new AptosAccount(HexString.ensure(phrases.profiles.default.private_key).toUint8Array())
-        this.seller = new AptosAccount(HexString.ensure(phrases.profiles.seller.private_key).toUint8Array())
-        this.buyer = new AptosAccount(HexString.ensure(phrases.profiles.buyer.private_key).toUint8Array())
-        this.payee = new AptosAccount(HexString.ensure(phrases.profiles.payee.private_key).toUint8Array())
-            .address()
-            .hex()
-        this.verifier = new AptosAccount(HexString.ensure(phrases.profiles.verifier.private_key).toUint8Array())
+    serialize(serializer: BCS.Serializer): void {
+        TxnBuilderTypes.AccountAddress.fromHex(this.moduleAddress).serialize(serializer)
+        serializer.serializeStr(this.moduleName)
+        serializer.serializeStr(this.structName)
+        TxnBuilderTypes.AccountAddress.fromHex(this.buyer).serialize(serializer)
+        serializer.serializeStr(this.orderId)
+        serializer.serializeStr(this.productTittle)
+        serializer.serializeU64(this.quantity)
     }
 }
