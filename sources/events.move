@@ -1,4 +1,5 @@
 module ecommerce::events {
+    use std::vector;
     use std::string::String;
     use std::option::Option;
     use aptos_token::token::{
@@ -159,6 +160,27 @@ module ecommerce::events {
         ClaimReviewEvent {
             review_id,
             reviewer,
+            fee,
+            timestamp
+        }
+    }
+
+    struct ClaimAllReviewEvent has copy, drop, store {
+        reviewer: address,
+        review_ids: vector<String>,
+        fee: u64,
+        timestamp: u64
+    }
+
+    public fun create_claim_all_review_event(
+        reviewer: address,
+        review_ids: vector<String>,
+        fee: u64,
+        timestamp: u64
+    ): ClaimAllReviewEvent {
+        ClaimAllReviewEvent {
+            reviewer,
+            review_ids,
             fee,
             timestamp
         }

@@ -102,4 +102,25 @@ module ecommerce::review {
         review.is_claimed = true;
         review.amount
     }
+
+    public fun claim_all_review_product_under_user_account(
+        reviewer: &signer
+    ): (u64, vector<String>) acquires ReviewRecords {
+        let reviewer_addr = signer::address_of(reviewer);
+        let review_records = borrow_global_mut<ReviewRecords>(reviewer_addr);
+        let idx = 0;
+        let reward_amount = 0;
+        let review_ids = vector::empty<String>();
+        while (idx < vector::length(&review_records.review_ids)) {
+            let review_id = *vector::borrow(&review_records.review_ids, idx);
+            let review = table::borrow_mut(&mut review_records.records, review_id);
+            if (!review.is_claimed && review.end_time < timestamp::now_seconds()) {
+                reward_amount = reward_amount + review.amount;
+                review.is_claimed = true;
+                vector::push_back(&mut review_ids, review_id);
+            };
+            idx = idx + 1;
+        };
+        (reward_amount, review_ids)
+    }
 }

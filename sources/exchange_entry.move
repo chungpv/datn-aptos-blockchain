@@ -27,7 +27,8 @@ module ecommerce::exchange_entry {
         CompleteOrderProductProof,
         ClaimRewardProof,
         ReviewProductProof,
-        ClaimReviewProof
+        ClaimReviewProof,
+        ClaimAllReviewProof
     };
     use ecommerce::events::{
         Self as events,
@@ -37,7 +38,8 @@ module ecommerce::exchange_entry {
         CompleteOrderEvent,
         ClaimRewardEvent,
         ReviewEvent,
-        ClaimReviewEvent
+        ClaimReviewEvent,
+        ClaimAllReviewEvent
     };
 
     struct Config has key {
@@ -65,7 +67,8 @@ module ecommerce::exchange_entry {
         complete_order_event: EventHandle<CompleteOrderEvent>,
         claim_reward_event: EventHandle<ClaimRewardEvent>,
         review_event: EventHandle<ReviewEvent>,
-        claim_review_event: EventHandle<ClaimReviewEvent>
+        claim_review_event: EventHandle<ClaimReviewEvent>,
+        claim_all_review_event: EventHandle<ClaimAllReviewEvent>
     }
 
     struct ProductInfo has drop, store {
@@ -136,7 +139,8 @@ module ecommerce::exchange_entry {
             complete_order_event: account::new_event_handle<CompleteOrderEvent>(account),
             claim_reward_event: account::new_event_handle<ClaimRewardEvent>(account),
             review_event: account::new_event_handle<ReviewEvent>(account),
-            claim_review_event: account::new_event_handle<ClaimReviewEvent>(account)
+            claim_review_event: account::new_event_handle<ClaimReviewEvent>(account),
+            claim_all_review_event: account::new_event_handle<ClaimAllReviewEvent>(account)
         });
         if (!coin::is_account_registered<AptosCoin>(@ecommerce)) {
             coin::register<AptosCoin>(account);
@@ -235,7 +239,12 @@ module ecommerce::exchange_entry {
         config.fee_denominator = fee_denominator;
     }
 
-    public entry fun set_reward(caller: &signer, reward_numerator: u64, reward_denominator: u64) acquires Config {
+    public entry fun set_reward(
+        caller: &signer,
+        reward_numerator: u64,
+        reward_denominator: u64,
+        min_time_orders_reward: u64
+    ) acquires Config {
         let caller_addr = signer::address_of(caller);
         assert!(caller_addr == @admin_addr, error::permission_denied(ENOT_AUTHORIZED));
         let config = borrow_global_mut<Config>(@ecommerce);
@@ -243,13 +252,14 @@ module ecommerce::exchange_entry {
             0 < reward_numerator && reward_numerator <= reward_denominator,
             error::invalid_argument(EINVALID_NUMERATOR_DENOMINATOR)
         );
+        assert!(min_time_orders_reward > 0, error::invalid_argument(EINVALID_ARGUMENT_NON_ZERO));
         config.reward_numerator = reward_numerator;
         config.reward_denominator = reward_denominator;
+        config.min_time_orders_reward = min_time_orders_reward;
     }
 
     public entry fun set_review(
         caller: &signer,
-        min_time_orders_reward: u64,
         reviewing_fee: u64,
         reviewing_lock_time: u64
     ) acquires Config {
@@ -257,10 +267,9 @@ module ecommerce::exchange_entry {
         assert!(caller_addr == @admin_addr, error::permission_denied(ENOT_AUTHORIZED));
         let config = borrow_global_mut<Config>(@ecommerce);
         assert!(
-            min_time_orders_reward > 0 && reviewing_fee > 0 && reviewing_lock_time > 0,
+            reviewing_fee > 0 && reviewing_lock_time > 0,
             error::invalid_argument(EINVALID_ARGUMENT_NON_ZERO)
         );
-        config.min_time_orders_reward = min_time_orders_reward;
         config.reviewing_fee = reviewing_fee;
         config.reviewing_lock_time = reviewing_lock_time;
     }
@@ -374,7 +383,7 @@ module ecommerce::exchange_entry {
             !table::contains(&exchange.buyer_by_order, order_id),
             error::invalid_argument(EORDER_ALREADY_EXISTED)
         );
-        let (_, price, _) = product::get_product_info(
+        let (_, _, price) = product::get_product_info(
             *table::borrow(&exchange.seller_by_product, token_id),
             token_id
         );
@@ -449,7 +458,7 @@ module ecommerce::exchange_entry {
         coin::transfer<CoinType>(&resource_signer, caller_addr, amount);
 
         // Transfer NFT
-        token::transfer(&resource_signer, token_id, buyer_addr, quantity);
+        token::transfer(caller, token_id, buyer_addr, quantity);
 
         // Add reward for buyer
         reward::add_reward_under_user_account(
@@ -520,6 +529,34 @@ module ecommerce::exchange_entry {
                 review_id,
                 caller_addr,
                 config.reviewing_fee,
+                timestamp::now_seconds()
+            )
+        );
+    }
+
+    public entry fun claim_all_review_product<CoinType>(
+        caller: &signer,
+        signature: vector<u8>
+    ) acquires Config, Exchange {
+        checking_when_not_paused();
+        checking_coin_type<CoinType>();
+        let caller_addr = signer::address_of(caller);
+        let data = proofs::create_claim_all_review_proof(caller_addr);
+        verify_signature<ClaimAllReviewProof>(signature, data);
+
+        let (amount, review_ids) = review::claim_all_review_product_under_user_account(caller);
+        // Transfer APT coin
+        let config = borrow_global<Config>(@ecommerce);
+        let resource_signer = account::create_signer_with_capability(&config.signer_cap);
+        coin::transfer<CoinType>(&resource_signer, caller_addr, amount);
+
+        let exchange = borrow_global_mut<Exchange>(@ecommerce);
+        event::emit_event<ClaimAllReviewEvent>(
+            &mut exchange.claim_all_review_event,
+            events::create_claim_all_review_event(
+                caller_addr,
+                review_ids,
+                amount,
                 timestamp::now_seconds()
             )
         );

@@ -106,4 +106,14 @@ module ecommerce::proofs {
             review_id
         }
     }
+
+    struct ClaimAllReviewProof has drop {
+        reviewer: address
+    }
+
+    public fun create_claim_all_review_proof(reviewer: address): ClaimAllReviewProof {
+        ClaimAllReviewProof {
+            reviewer
+        }
+    }
 }

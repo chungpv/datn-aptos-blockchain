@@ -34,9 +34,10 @@ module ecommerce::reward {
     ) acquires Reward {
         assert!(max_time_orders > 0, error::invalid_argument(EREWARD_MAX_TIME_ORDER_NON_ZERO));
         let reward = borrow_global_mut<Reward>(buyer_addr);
-        if (vector::length(&reward.time_orders) < max_time_orders - 1) {
+        if (vector::length(&reward.time_orders) < max_time_orders) {
             vector::push_back(&mut reward.time_orders, amount);
-        } else {
+        };
+        if (vector::length(&reward.time_orders) >= max_time_orders) {
             let idx = 0;
             while (idx < vector::length(&reward.time_orders)) {
                 reward.balance = reward.balance +
@@ -45,7 +46,12 @@ module ecommerce::reward {
                                     reward_denominator;
                 idx = idx + 1;
             };
-            reward.time_orders = vector::empty<u64>();
+
+            if (vector::length(&reward.time_orders) == max_time_orders) {
+                reward.time_orders = vector::empty<u64>();
+            } else {
+                reward.time_orders = vector::singleton(amount);
+            };
         };
     }
 

@@ -173,11 +173,12 @@ export class EcommerceClient extends CommonClient {
         account: AptosAccount,
         rewardNumerator: number | bigint,
         rewardDenominator: number | bigint,
+        minTimeOrdersReward: number | bigint,
     ): Promise<string> {
         const rawTxn = await this.generateTransaction(account.address(), {
             function: `${this.ecommerce.hex()}::exchange_entry::set_reward`,
             type_arguments: [],
-            arguments: [rewardNumerator, rewardDenominator],
+            arguments: [rewardNumerator, rewardDenominator, minTimeOrdersReward],
         })
         const bcsTxn = await this.signTransaction(account, rawTxn)
         const pendingTxn = await this.submitTransaction(bcsTxn)
@@ -186,14 +187,13 @@ export class EcommerceClient extends CommonClient {
 
     async setReview(
         account: AptosAccount,
-        minTimeOrdersReward: number | bigint,
         reviewingFee: number | bigint,
         reviewingLockTime: number | bigint,
     ): Promise<string> {
         const rawTxn = await this.generateTransaction(account.address(), {
             function: `${this.ecommerce.hex()}::exchange_entry::set_review`,
             type_arguments: [],
-            arguments: [minTimeOrdersReward, reviewingFee, reviewingLockTime],
+            arguments: [reviewingFee, reviewingLockTime],
         })
         const bcsTxn = await this.signTransaction(account, rawTxn)
         const pendingTxn = await this.submitTransaction(bcsTxn)
@@ -241,6 +241,61 @@ export class EcommerceClient extends CommonClient {
             function: `${this.ecommerce.hex()}::exchange_entry::order_product`,
             type_arguments: [APTOS_COIN_TYPE],
             arguments: [orderId, productTittle, quantity, Array.from(new HexString(signature).toUint8Array())],
+        })
+        const bcsTxn = await this.signTransaction(account, rawTxn)
+        const pendingTxn = await this.submitTransaction(bcsTxn)
+        return pendingTxn.hash
+    }
+
+    async completeOrderProduct(account: AptosAccount, orderId: string, signature: string): Promise<string> {
+        const rawTxn = await this.generateTransaction(account.address(), {
+            function: `${this.ecommerce.hex()}::exchange_entry::complete_order_product`,
+            type_arguments: [APTOS_COIN_TYPE],
+            arguments: [orderId, Array.from(new HexString(signature).toUint8Array())],
+        })
+        const bcsTxn = await this.signTransaction(account, rawTxn)
+        const pendingTxn = await this.submitTransaction(bcsTxn)
+        return pendingTxn.hash
+    }
+
+    async claimReward(account: AptosAccount, claimHistoryId: string, signature: string): Promise<string> {
+        const rawTxn = await this.generateTransaction(account.address(), {
+            function: `${this.ecommerce.hex()}::exchange_entry::claim_reward`,
+            type_arguments: [APTOS_COIN_TYPE],
+            arguments: [claimHistoryId, Array.from(new HexString(signature).toUint8Array())],
+        })
+        const bcsTxn = await this.signTransaction(account, rawTxn)
+        const pendingTxn = await this.submitTransaction(bcsTxn)
+        return pendingTxn.hash
+    }
+
+    async reviewProduct(account: AptosAccount, reviewId: string, signature: string): Promise<string> {
+        const rawTxn = await this.generateTransaction(account.address(), {
+            function: `${this.ecommerce.hex()}::exchange_entry::review_product`,
+            type_arguments: [APTOS_COIN_TYPE],
+            arguments: [reviewId, Array.from(new HexString(signature).toUint8Array())],
+        })
+        const bcsTxn = await this.signTransaction(account, rawTxn)
+        const pendingTxn = await this.submitTransaction(bcsTxn)
+        return pendingTxn.hash
+    }
+
+    async claimReviewProduct(account: AptosAccount, reviewId: string, signature: string): Promise<string> {
+        const rawTxn = await this.generateTransaction(account.address(), {
+            function: `${this.ecommerce.hex()}::exchange_entry::claim_review_product`,
+            type_arguments: [APTOS_COIN_TYPE],
+            arguments: [reviewId, Array.from(new HexString(signature).toUint8Array())],
+        })
+        const bcsTxn = await this.signTransaction(account, rawTxn)
+        const pendingTxn = await this.submitTransaction(bcsTxn)
+        return pendingTxn.hash
+    }
+
+    async claimAllReviewProduct(account: AptosAccount, signature: string): Promise<string> {
+        const rawTxn = await this.generateTransaction(account.address(), {
+            function: `${this.ecommerce.hex()}::exchange_entry::claim_all_review_product`,
+            type_arguments: [APTOS_COIN_TYPE],
+            arguments: [Array.from(new HexString(signature).toUint8Array())],
         })
         const bcsTxn = await this.signTransaction(account, rawTxn)
         const pendingTxn = await this.submitTransaction(bcsTxn)
