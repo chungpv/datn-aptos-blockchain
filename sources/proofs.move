@@ -1,4 +1,5 @@
 module ecommerce::proofs {
+    use std::vector;
     use std::string::String;
     use std::option::Option;
     use aptos_token::token::{
@@ -34,22 +35,22 @@ module ecommerce::proofs {
 
     struct OrderProductProof has drop {
         buyer: address,
-        order_id: String,
-        product_title: String,
-        quantity: u64
+        order_ids: vector<String>,
+        product_titles: vector<String>,
+        quantities: vector<u64>
     }
 
     public fun create_order_product_proof(
         buyer: address,
-        order_id: String,
-        product_title: String,
-        quantity: u64
+        order_ids: vector<String>,
+        product_titles: vector<String>,
+        quantities: vector<u64>
     ): OrderProductProof {
         OrderProductProof {
             buyer,
-            order_id,
-            product_title,
-            quantity
+            order_ids,
+            product_titles,
+            quantities
         }
     }
 

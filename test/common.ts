@@ -101,6 +101,9 @@ export class EcommerceClient extends CommonClient {
         minTimeOrdersReward: number | bigint,
         reviewingFee: number | bigint,
         reviewingLockTime: number | bigint,
+        categories: string[],
+        colors: string[],
+        sizes: string[],
     ): Promise<string> {
         const rawTxn = await this.generateTransaction(account.address(), {
             function: `${this.ecommerce.hex()}::exchange_entry::init_config`,
@@ -114,6 +117,9 @@ export class EcommerceClient extends CommonClient {
                 minTimeOrdersReward,
                 reviewingFee,
                 reviewingLockTime,
+                categories,
+                colors,
+                sizes,
             ],
         })
         const bcsTxn = await this.signTransaction(account, rawTxn)
@@ -211,6 +217,17 @@ export class EcommerceClient extends CommonClient {
         return pendingTxn.hash
     }
 
+    async insertCategories(account: AptosAccount, categories: string[]): Promise<string> {
+        const rawTxn = await this.generateTransaction(account.address(), {
+            function: `${this.ecommerce.hex()}::exchange_entry::insert_categories`,
+            type_arguments: [],
+            arguments: [categories],
+        })
+        const bcsTxn = await this.signTransaction(account, rawTxn)
+        const pendingTxn = await this.submitTransaction(bcsTxn)
+        return pendingTxn.hash
+    }
+
     async listingProduct(
         account: AptosAccount,
         name: string,
@@ -232,15 +249,15 @@ export class EcommerceClient extends CommonClient {
 
     async orderProduct(
         account: AptosAccount,
-        orderId: string,
-        productTittle: string,
-        quantity: number | bigint,
+        orderIds: string[],
+        productTittles: string[],
+        quantities: (number | bigint)[],
         signature: string,
     ): Promise<string> {
         const rawTxn = await this.generateTransaction(account.address(), {
             function: `${this.ecommerce.hex()}::exchange_entry::order_product`,
             type_arguments: [APTOS_COIN_TYPE],
-            arguments: [orderId, productTittle, quantity, Array.from(new HexString(signature).toUint8Array())],
+            arguments: [orderIds, productTittles, quantities, Array.from(new HexString(signature).toUint8Array())],
         })
         const bcsTxn = await this.signTransaction(account, rawTxn)
         const pendingTxn = await this.submitTransaction(bcsTxn)

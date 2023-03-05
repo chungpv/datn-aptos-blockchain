@@ -98,7 +98,7 @@ module ecommerce::review {
         );
         let review = table::borrow_mut(&mut review_records.records, review_id);
         assert!(!review.is_claimed, error::invalid_argument(EREVIEW_ALREADY_CLAIMED));
-        assert!(review.end_time < timestamp::now_seconds(), error::invalid_argument(EREVIEW_IN_DURATION));
+        assert!(review.end_time < timestamp::now_microseconds(), error::invalid_argument(EREVIEW_IN_DURATION));
         review.is_claimed = true;
         review.amount
     }
@@ -114,7 +114,7 @@ module ecommerce::review {
         while (idx < vector::length(&review_records.review_ids)) {
             let review_id = *vector::borrow(&review_records.review_ids, idx);
             let review = table::borrow_mut(&mut review_records.records, review_id);
-            if (!review.is_claimed && review.end_time < timestamp::now_seconds()) {
+            if (!review.is_claimed && review.end_time < timestamp::now_microseconds()) {
                 reward_amount = reward_amount + review.amount;
                 review.is_claimed = true;
                 vector::push_back(&mut review_ids, review_id);

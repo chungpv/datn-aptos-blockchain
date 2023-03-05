@@ -62,22 +62,22 @@ export class ListingProductProof extends Proof {
 
 export class OrderProductProof extends Proof {
     buyer: string
-    orderId: string
-    productTittle: string
-    quantity: number | bigint
+    orderIds: string[]
+    productTittles: string[]
+    quantities: (number | bigint)[]
 
     constructor(
         moduleAddress: string,
         buyer: string,
-        orderId: string,
-        productTittle: string,
-        quantity: number | bigint,
+        orderIds: string[],
+        productTittles: string[],
+        quantities: (number | bigint)[],
     ) {
         super(moduleAddress, "proofs", "OrderProductProof")
         this.buyer = buyer
-        this.orderId = orderId
-        this.productTittle = productTittle
-        this.quantity = quantity
+        this.orderIds = orderIds
+        this.productTittles = productTittles
+        this.quantities = quantities
     }
 
     serialize(serializer: BCS.Serializer): void {
@@ -85,9 +85,18 @@ export class OrderProductProof extends Proof {
         serializer.serializeStr(this.moduleName)
         serializer.serializeStr(this.structName)
         TxnBuilderTypes.AccountAddress.fromHex(this.buyer).serialize(serializer)
-        serializer.serializeStr(this.orderId)
-        serializer.serializeStr(this.productTittle)
-        serializer.serializeU64(this.quantity)
+        serializer.serializeU32AsUleb128(this.orderIds.length)
+        this.orderIds.forEach((id: string) => {
+            serializer.serializeStr(id)
+        })
+        serializer.serializeU32AsUleb128(this.productTittles.length)
+        this.productTittles.forEach((title: string) => {
+            serializer.serializeStr(title)
+        })
+        serializer.serializeU32AsUleb128(this.quantities.length)
+        this.quantities.forEach((quantity: number | bigint) => {
+            serializer.serializeU64(quantity)
+        })
     }
 }
 

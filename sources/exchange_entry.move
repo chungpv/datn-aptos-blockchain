@@ -54,7 +54,10 @@ module ecommerce::exchange_entry {
         reward_denominator: u64,
         min_time_orders_reward: u64,
         reviewing_fee: u64,
-        reviewing_lock_time: u64
+        reviewing_lock_time: u64,
+        categories: vector<String>,
+        colors: vector<String>,
+        sizes: vector<String>,
     }
 
     struct Exchange has key {
@@ -127,7 +130,10 @@ module ecommerce::exchange_entry {
             min_time_orders_reward: 0,
             reviewing_fee: 0,
             reviewing_lock_time: 0,
-            operators: vector[@admin_addr]
+            operators: vector[@admin_addr],
+            categories: vector::empty<String>(),
+            colors: vector::empty<String>(),
+            sizes: vector::empty<String>()
         });
         move_to(account, Exchange {
             products: table::new(),
@@ -157,6 +163,9 @@ module ecommerce::exchange_entry {
         min_time_orders_reward: u64,
         reviewing_fee: u64,
         reviewing_lock_time: u64,
+        categories: vector<String>,
+        colors: vector<String>,
+        sizes: vector<String>
     ) acquires Config {
         let caller_addr = signer::address_of(caller);
         let config = borrow_global_mut<Config>(@ecommerce);
@@ -183,6 +192,9 @@ module ecommerce::exchange_entry {
         config.min_time_orders_reward = min_time_orders_reward;
         config.reviewing_fee = reviewing_fee;
         config.reviewing_lock_time = reviewing_lock_time;
+        config.categories = categories;
+        config.colors = colors;
+        config.sizes = sizes;
     }
 
     public entry fun create_collection(
@@ -290,6 +302,51 @@ module ecommerce::exchange_entry {
         config.paused = is_paused;
     }
 
+    public entry fun insert_categories(caller: &signer, categories: vector<String>) acquires Config {
+        let caller_addr = signer::address_of(caller);
+        let config = borrow_global_mut<Config>(@ecommerce);
+        assert!(vector::contains(&config.operators, &caller_addr), error::permission_denied(ENOT_AUTHORIZED));
+
+        let idx = 0;
+        while (idx < vector::length(&categories)) {
+            let category = *vector::borrow(&categories, idx);
+            if (!vector::contains(&categories, &category)) {
+                vector::push_back(&mut config.categories, category);
+            };
+            idx = idx + 1;
+        };
+    }
+
+    public entry fun insert_colors(caller: &signer, colors: vector<String>) acquires Config {
+        let caller_addr = signer::address_of(caller);
+        let config = borrow_global_mut<Config>(@ecommerce);
+        assert!(vector::contains(&config.operators, &caller_addr), error::permission_denied(ENOT_AUTHORIZED));
+
+        let idx = 0;
+        while (idx < vector::length(&colors)) {
+            let color = *vector::borrow(&colors, idx);
+            if (!vector::contains(&colors, &color)) {
+                vector::push_back(&mut config.colors, color);
+            };
+            idx = idx + 1;
+        };
+    }
+
+    public entry fun insert_sizes(caller: &signer, sizes: vector<String>) acquires Config {
+        let caller_addr = signer::address_of(caller);
+        let config = borrow_global_mut<Config>(@ecommerce);
+        assert!(vector::contains(&config.operators, &caller_addr), error::permission_denied(ENOT_AUTHORIZED));
+
+        let idx = 0;
+        while (idx < vector::length(&sizes)) {
+            let size = *vector::borrow(&sizes, idx);
+            if (!vector::contains(&sizes, &size)) {
+                vector::push_back(&mut config.sizes, size);
+            };
+            idx = idx + 1;
+        };
+    }
+
     public entry fun listing_product(
         caller: &signer,
         name: String,
@@ -336,7 +393,7 @@ module ecommerce::exchange_entry {
             token_id,
             quantity,
             price,
-            timestamp::now_seconds()
+            timestamp::now_microseconds()
         );
         let exchange = borrow_global_mut<Exchange>(@ecommerce);
         table::add(&mut exchange.products, token_id, ProductInfo {
@@ -351,62 +408,68 @@ module ecommerce::exchange_entry {
                 caller_addr,
                 quantity,
                 price,
-                timestamp::now_seconds()
+                timestamp::now_microseconds()
             )
         );
     }
 
     public entry fun order_product<CoinType>(
         caller: &signer,
-        order_id: String,
-        product_title: String,
-        quantity: u64,
+        order_ids: vector<String>,
+        product_titles: vector<String>,
+        quantities: vector<u64>,
         signature: vector<u8>
     ) acquires Config, Exchange {
         checking_when_not_paused();
         checking_coin_type<CoinType>();
-        assert!(quantity > 0, error::invalid_argument(EINVALID_ARGUMENT_NON_ZERO));
         let caller_addr = signer::address_of(caller);
         let data = proofs::create_order_product_proof(
             caller_addr,
-            order_id,
-            product_title,
-            quantity
+            order_ids,
+            product_titles,
+            quantities
         );
         verify_signature<OrderProductProof>(signature, data);
         let config = borrow_global<Config>(@ecommerce);
-        let token_id = token::create_token_id_raw(@ecommerce, config.collection_name, product_title, 0);
         let exchange = borrow_global_mut<Exchange>(@ecommerce);
-        let product_info = table::borrow_mut(&mut exchange.products, token_id);
-        assert!(
-            !vector::contains(&product_info.order_ids, &order_id) &&
-            !table::contains(&exchange.buyer_by_order, order_id),
-            error::invalid_argument(EORDER_ALREADY_EXISTED)
-        );
-        let (_, _, price) = product::get_product_info(
-            *table::borrow(&exchange.seller_by_product, token_id),
-            token_id
-        );
-        order::create_order_under_user_account(caller, order_id, token_id, quantity, price, timestamp::now_seconds());
-        vector::push_back(&mut product_info.order_ids, order_id);
-        table::add(&mut exchange.buyer_by_order, order_id, caller_addr);
+        let idx = 0;
+        let coins = 0;
+        while (idx < vector::length(&order_ids)) {
+            let order_id = *vector::borrow(&order_ids, idx);
+            let product_title = *vector::borrow(&product_titles, idx);
+            let quantity = *vector::borrow(&quantities, idx);
+            let token_id = token::create_token_id_raw(@ecommerce, config.collection_name, product_title, 0);
+            let product_info = table::borrow_mut(&mut exchange.products, token_id);
+            assert!(quantity > 0, error::invalid_argument(EINVALID_ARGUMENT_NON_ZERO));
+            assert!(
+                !vector::contains(&product_info.order_ids, &order_id) &&
+                !table::contains(&exchange.buyer_by_order, order_id),
+                error::invalid_argument(EORDER_ALREADY_EXISTED)
+            );
+            let (_, _, price) = product::get_product_info(
+                *table::borrow(&exchange.seller_by_product, token_id),
+                token_id
+            );
+            order::create_order_under_user_account(caller, order_id, token_id, quantity, price, timestamp::now_microseconds());
+            vector::push_back(&mut product_info.order_ids, order_id);
+            table::add(&mut exchange.buyer_by_order, order_id, caller_addr);
+            coins = coins + price * quantity;
+            idx = idx + 1;
+        };
 
         event::emit_event<OrderEvent>(
             &mut exchange.order_event,
             events::create_order_event(
-                order_id,
-                token_id,
+                order_ids,
                 caller_addr,
-                quantity,
-                price,
-                timestamp::now_seconds()
+                timestamp::now_microseconds()
             )
         );
 
         token::opt_in_direct_transfer(caller, true);
         reward::initialize_reward(caller);
         // Transfer APT coin
-        coin::transfer<CoinType>(caller, @ecommerce, price * quantity);
+        coin::transfer<CoinType>(caller, @ecommerce, coins);
     }
 
     public entry fun complete_order_product<CoinType>(
@@ -442,7 +505,7 @@ module ecommerce::exchange_entry {
                 order_id,
                 token_id,
                 buyer_addr,
-                timestamp::now_seconds()
+                timestamp::now_microseconds()
             )
         );
 
@@ -495,7 +558,7 @@ module ecommerce::exchange_entry {
                 claim_history_id,
                 caller_addr,
                 balance,
-                timestamp::now_seconds()
+                timestamp::now_microseconds()
             )
         );
     }
@@ -516,7 +579,7 @@ module ecommerce::exchange_entry {
             caller,
             review_id,
             config.reviewing_fee,
-            timestamp::now_seconds(),
+            timestamp::now_microseconds(),
             config.reviewing_lock_time
         );
         // Transfer APT coin
@@ -529,7 +592,7 @@ module ecommerce::exchange_entry {
                 review_id,
                 caller_addr,
                 config.reviewing_fee,
-                timestamp::now_seconds()
+                timestamp::now_microseconds()
             )
         );
     }
@@ -557,7 +620,7 @@ module ecommerce::exchange_entry {
                 caller_addr,
                 review_ids,
                 amount,
-                timestamp::now_seconds()
+                timestamp::now_microseconds()
             )
         );
     }
@@ -586,7 +649,7 @@ module ecommerce::exchange_entry {
                 review_id,
                 caller_addr,
                 amount,
-                timestamp::now_seconds()
+                timestamp::now_microseconds()
             )
         );
     }

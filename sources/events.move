@@ -55,28 +55,19 @@ module ecommerce::events {
     }
 
     struct OrderEvent has copy, drop, store {
-        order_id: String,
-        token_id: TokenId,
+        order_ids: vector<String>,
         buyer: address,
-        quantity: u64,
-        price: u64,
         timestamp: u64
     }
 
     public fun create_order_event(
-        order_id: String,
-        token_id: TokenId,
+        order_ids: vector<String>,
         buyer: address,
-        quantity: u64,
-        price: u64,
         timestamp: u64
     ): OrderEvent {
         OrderEvent {
-            order_id,
-            token_id,
+            order_ids,
             buyer,
-            quantity,
-            price,
             timestamp
         }
     }
