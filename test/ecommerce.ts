@@ -121,17 +121,17 @@ describe("Ecommerce", () => {
         await client.waitForTransactionWithResult(txn, { checkSuccess: true })
     })
 
-    // it("Listing product", async () => {
-    //     const name = `Product|${random}`
-    //     const description = `Description#${random}`
-    //     const uri = `Uri#${random}`
-    //     const quantity = 10
-    //     const price = 0.005 * 10 ** 8
-    //     const data = new ListingProductProof(ECOMMERCE, seller.address().hex(), name, description, uri, quantity, price)
-    //     const signature = data.generateSignature(verifier.toPrivateKeyObject().privateKeyHex)
-    //     const txn = await client.listingProduct(seller, name, description, uri, quantity, price, signature)
-    //     await client.waitForTransactionWithResult(txn, { checkSuccess: true })
-    // })
+    it("Listing product", async () => {
+        const name = `Product|${random}`
+        const description = `Description#${random}`
+        const uri = `Uri#${random}`
+        const quantity = 10
+        const price = 0.005 * 10 ** 8
+        const data = new ListingProductProof(ECOMMERCE, seller.address().hex(), name, description, uri, quantity, price)
+        const signature = data.generateSignature(verifier.toPrivateKeyObject().privateKeyHex)
+        const txn = await client.listingProduct(seller, name, description, uri, quantity, price, signature)
+        await client.waitForTransactionWithResult(txn, { checkSuccess: true })
+    })
 
     // it("Order product", async () => {
     //     const orderId = `order ${random}`
